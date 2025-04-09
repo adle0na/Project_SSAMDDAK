@@ -10,8 +10,6 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
         private Animator animator;
         public string currentDirection = "isEast"; // Default direction
         public bool isCurrentlyRunning; //for debugging purposes
-        public bool isCrouching = false;
-
         public bool isAttacking = false;
 
         void Start()
@@ -33,23 +31,7 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             //HandleMovement();
             HandleAttackAttack();
 
-            //Other input actions:
-            if (Input.GetKeyDown(KeyCode.C))
-            {
-
-                if (isCrouching == false)
-                {
-                    TriggerCrouchIdleAnimation();
-                    isCrouching = true;
-                }
-                else
-                {
-                    isCrouching = false;
-                    // Reset the crouch idle parameters after a delay or at the end of the animation
-                    ResetCrouchIdleParameters();
-                }
-            }
-            else if (Input.GetKey(KeyCode.Alpha1))
+            if (Input.GetKey(KeyCode.Alpha1))
             {
                 TriggerSpecialAbility1Animation();
             }
@@ -141,15 +123,7 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             animator.SetBool("isRunning", isRunning);
             animator.SetBool("isCrouchRunning", isRunning);
 
-            // Set specific movement animations
-            if (isCrouching)
-            {
-                SetMovementAnimation(true, "CrouchRun", movementDirection);
-            }
-            else
-            {
-                SetMovementAnimation(true, "Move", movementDirection);
-            }
+            SetMovementAnimation(true, "Move", movementDirection);
         }
 
         void SetMovementAnimation(bool isActive, string baseKey, string direction)
