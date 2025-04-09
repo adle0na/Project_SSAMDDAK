@@ -12,6 +12,8 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
         public bool isCurrentlyRunning; //for debugging purposes
         public bool isCrouching = false;
 
+        public bool isAttacking = false;
+
         void Start()
         {
             animator = GetComponent<Animator>();
@@ -103,6 +105,8 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
         public bool isRunning;
         public void HandleMovement(float angle)
         {
+            if (isAttacking) return;
+            
             if (angle < 0 || 
                 (!Input.GetKey(KeyCode.W) && !Input.GetKey(KeyCode.S) && 
                  !Input.GetKey(KeyCode.A) && !Input.GetKey(KeyCode.D)))
@@ -253,20 +257,17 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
 
         void TriggerAttack(bool isRunning, string direction)
         {
+            isAttacking = true;
+            
             // Randomly choose between AttackAttack and Attack2 for the attack type
             int attackType = Random.Range(0, 2);  // Generates 0 or 1
             string attackParam = (attackType == 0 ? "AttackAttack" : "Attack2") + direction;
 
             animator.SetBool(attackParam, true);
-
-            // Set the specific attacking flags based on whether the character is running or not
             animator.SetBool("isAttackAttacking", !isRunning);
             animator.SetBool("isAttackRunning", isRunning);
         }
-
-
-
-
+        
         void ResetAttackAttackParameters()
         {
             // Reset both AttackAttack and Attack2 parameters for all dir ections
@@ -280,9 +281,9 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
 
             // After resetting attack attack, restore the direction
             RestoreDirectionAfterAttack();
+            isAttacking = false;
         }
-
-
+        
         void RestoreDirectionAfterAttack()
         {
             // Reset the character to face the last known direction after an attack
@@ -292,8 +293,7 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             SetDirectionBools(false, false, false, false, false, false, false, false); // Reset all directions
             animator.SetBool(currentDirection, true); // Restore the last known direction
         }
-
-
+        
         //Take Damage:
         public void TriggerTakeDamageAnimation()
         {
@@ -375,9 +375,7 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             // Optionally, restore the direction to ensure the character returns to the correct idle state
             RestoreDirectionAfterAttack();
         }
-
-
-
+        
         //Die
         public void TriggerDie()
         {
