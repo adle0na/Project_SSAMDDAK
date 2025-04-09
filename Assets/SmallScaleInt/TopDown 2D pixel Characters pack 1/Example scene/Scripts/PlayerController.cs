@@ -30,44 +30,22 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
         }
         void Update()
         {
-            Vector2 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            Vector2 directionToMouse = (mousePosition - (Vector2)transform.position).normalized;
-
-            float angle = Mathf.Atan2(directionToMouse.y, directionToMouse.x) * Mathf.Rad2Deg;
-            lastAngle = SnapAngleToEightDirections(angle);  // Update lastAngle here
-
-            movementDirection = new Vector2(Mathf.Cos(lastAngle * Mathf.Deg2Rad), Mathf.Sin(lastAngle * Mathf.Deg2Rad));
-
-            HandleMovement();
-
-            if (Input.GetKeyDown(KeyCode.C))
-            {
-                HandleCrouching();
-            }
+            UpdateMovementDirectionByKeys(); 
+            HandleCrouching();
 
             if (isRanged)
             {
-                if (Input.GetMouseButtonDown(1))
-                {
+                if (Input.GetKeyDown(KeyCode.J))
                     Invoke(nameof(DelayedShoot), shootDelay);
-                }
-                if (Input.GetKeyDown(KeyCode.Alpha5))
-                {
-                    StartCoroutine(Quickshot());
-                }
-                if (Input.GetKeyDown(KeyCode.Alpha6))
-                {
-                    StartCoroutine(CircleShot());
-                }
-                if (Input.GetKeyDown(KeyCode.Alpha3))
-                {
-                    StartCoroutine(DeployAoEDelayed());
-                }
+                // if (Input.GetKeyDown(KeyCode.Alpha5))
+                //     StartCoroutine(Quickshot());
+                // if (Input.GetKeyDown(KeyCode.Alpha6))
+                //     StartCoroutine(CircleShot());
+                // if (Input.GetKeyDown(KeyCode.Alpha3))
+                //     StartCoroutine(DeployAoEDelayed());
             }
         }
-
-
-
+        
         void FixedUpdate()
         {
             if (movementDirection != Vector2.zero)
@@ -76,6 +54,32 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             }
         }
 
+        void UpdateMovementDirectionByKeys()
+        {
+            bool w = Input.GetKey(KeyCode.W);
+            bool a = Input.GetKey(KeyCode.A);
+            bool s = Input.GetKey(KeyCode.S);
+            bool d = Input.GetKey(KeyCode.D);
+
+            movementDirection = Vector2.zero;
+
+            if (w && d) { lastAngle = 45f; }
+            else if (w && a) { lastAngle = 135f; }
+            else if (s && d) { lastAngle = 315f; }
+            else if (s && a) { lastAngle = 225f; }
+            else if (w) { lastAngle = 90f; }
+            else if (s) { lastAngle = 270f; }
+            else if (a) { lastAngle = 180f; }
+            else if (d) { lastAngle = 0f; }
+            
+            if (w || a || s || d)
+            {
+                movementDirection = new Vector2(Mathf.Cos(lastAngle * Mathf.Deg2Rad), Mathf.Sin(lastAngle * Mathf.Deg2Rad)).normalized;
+            }
+            
+            GetComponent<AnimationController>()?.HandleMovement(lastAngle);
+        }
+        
         float SnapAngleToEightDirections(float angle)
         {
             angle = (angle + 360) % 360;
@@ -283,8 +287,5 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
                 Destroy(aoeInstance, 0.5f);
             }
         }
-
-
-
     }
 }

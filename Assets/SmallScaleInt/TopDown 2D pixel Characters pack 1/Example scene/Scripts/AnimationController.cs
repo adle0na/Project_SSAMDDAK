@@ -28,7 +28,7 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             {
                 return;
             }
-            HandleMovement();
+            //HandleMovement();
             HandleAttackAttack();
 
             //Other input actions:
@@ -99,63 +99,52 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
 
             //Reset the parameters to restart animations from new directions. 
             ResetAttackAttackParameters();
-
         }
         public bool isRunning;
-        public bool isRunningBackwards;
-        public bool isStrafingLeft;
-        public bool isStrafingRight;
-
-        void HandleMovement()
+        public void HandleMovement(float angle)
         {
-            // Calculate direction based on mouse position
-            Vector3 mouseScreenPosition = Input.mousePosition;
-            mouseScreenPosition.z = Camera.main.transform.position.z - transform.position.z;
-            Vector3 mouseWorldPosition = Camera.main.ScreenToWorldPoint(mouseScreenPosition);
-            Vector3 directionToMouse = mouseWorldPosition - transform.position;
-            directionToMouse.Normalize(); // Normalize the direction vector
+            if (angle < 0 || 
+                (!Input.GetKey(KeyCode.W) && !Input.GetKey(KeyCode.S) && 
+                 !Input.GetKey(KeyCode.A) && !Input.GetKey(KeyCode.D)))
+            {
+                isRunning = false;
+                isCurrentlyRunning = false;
 
-            // Determine the closest cardinal or intercardinal direction
-            float angle = Mathf.Atan2(directionToMouse.y, directionToMouse.x) * Mathf.Rad2Deg;
+                animator.SetBool("isRunning", false);
+                animator.SetBool("isCrouchRunning", false);
+                ResetAllMovementBools();
+
+                animator.SetBool(currentDirection, true);
+                return;
+            }
+            
             if (angle < 0) angle += 360;
-
+            
             string newDirection = DetermineDirectionFromAngle(angle);
             UpdateDirection(newDirection);
             string movementDirection = newDirection.Substring(2); // Remove "is" from the direction name
 
             // Capture movement input states
-            isRunning = Input.GetKey(KeyCode.W);
-            isRunningBackwards = Input.GetKey(KeyCode.S);
-            isStrafingLeft = Input.GetKey(KeyCode.A);
-            isStrafingRight = Input.GetKey(KeyCode.D);
+            isRunning = Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D);
 
             // Set general movement boolean
-            isCurrentlyRunning = isRunning || isRunningBackwards || isStrafingLeft || isStrafingRight;
+            isCurrentlyRunning = true;
 
             // Reset all directional movement parameters
             ResetAllMovementBools();
 
             // Update animator with movement conditions
             animator.SetBool("isRunning", isRunning);
-            animator.SetBool("isRunningBackwards", isRunningBackwards);
-            animator.SetBool("isStrafingLeft", isStrafingLeft);
-            animator.SetBool("isStrafingRight", isStrafingRight);
             animator.SetBool("isCrouchRunning", isRunning);
 
             // Set specific movement animations
             if (isCrouching)
             {
-                SetMovementAnimation(isRunning, "CrouchRun", movementDirection);
+                SetMovementAnimation(true, "CrouchRun", movementDirection);
             }
             else
             {
-                SetMovementAnimation(isRunning, "Move", movementDirection);
-                SetMovementAnimation(isRunningBackwards, "RunBackwards", movementDirection);
-                SetMovementAnimation(isStrafingLeft, "StrafeLeft", movementDirection);
-                SetMovementAnimation(isStrafingRight, "StrafeRight", movementDirection);
-                SetMovementAnimation(isRunningBackwards, "Move", movementDirection);
-                SetMovementAnimation(isStrafingLeft, "Move", movementDirection);
-                SetMovementAnimation(isStrafingRight, "Move", movementDirection);
+                SetMovementAnimation(true, "Move", movementDirection);
             }
         }
 
@@ -171,7 +160,7 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
         void ResetAllMovementBools()
         {
             string[] directions = new string[] { "North", "South", "East", "West", "NorthEast", "NorthWest", "SouthEast", "SouthWest" };
-            foreach (string baseKey in new string[] { "Move", "RunBackwards", "StrafeLeft", "StrafeRight" })
+            foreach (string baseKey in new string[] { "Move"})
             {
                 foreach (string direction in directions)
                 {
@@ -232,7 +221,7 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
         void HandleAttackAttack()
         {
             // Check if the left mouse button is currently being held down
-            if (Input.GetMouseButton(1))
+            if (Input.GetKeyDown(KeyCode.J))
             {
                 bool isRunning = isCurrentlyRunning;
                 // Determine the current direction and trigger the appropriate attack attack or attack run attack
@@ -253,8 +242,7 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
                 else if (animator.GetBool("isSouthWest"))
                     TriggerAttack(isRunning, "SouthWest");
             }
-            // Check if the left mouse button was released
-            else if (Input.GetMouseButtonUp(1))
+            else if (Input.GetKeyUp(KeyCode.J))
             {
                 // Reset attack attack parameters and return to idle state
                 ResetAttackAttackParameters();

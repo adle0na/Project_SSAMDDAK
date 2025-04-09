@@ -4,13 +4,18 @@ using UnityEngine;
 public class CommandInput : MonoBehaviour
 {
     private List<string> inputBuffer = new List<string>(); // 입력 버퍼
-    private float inputTimeLimit = 1.0f; // 입력 유지 시간 (초)
+    private float inputTimeLimit = 1.0f;
     private float lastInputTime;
-    private Vector2 characterPosition = Vector2.zero; // 캐릭터 위치
-    private float moveSpeed = 5.0f; // 이동 속도
+    private Vector2 characterPosition = Vector2.zero;
+    private float moveSpeed = 5.0f;
 
-    // 커맨드 정의 (➡️⬇️↘️K)
-    private readonly List<string> hadoukenCommand = new List<string> { "Right", "Down", "Down-Right", "K" };
+    // 부드러운 커맨드 인식: 각 단계마다 여러 입력 허용
+    private readonly List<HashSet<string>> superCommand = new List<HashSet<string>> {
+        new HashSet<string>{ "Left", "Down-Left" },
+        new HashSet<string>{ "Down", "Down-Left", "Down-Right" },
+        new HashSet<string>{ "Right", "Down-Right" },
+        new HashSet<string>{ "K" }
+    };
 
     void Update()
     {
@@ -21,70 +26,77 @@ public class CommandInput : MonoBehaviour
 
     void DetectInput()
     {
-        if (Input.GetKeyDown(KeyCode.RightArrow)) RegisterInput("Right");
-        if (Input.GetKeyDown(KeyCode.LeftArrow)) RegisterInput("Left");
-        if (Input.GetKeyDown(KeyCode.UpArrow)) RegisterInput("Up");
-        if (Input.GetKeyDown(KeyCode.DownArrow)) RegisterInput("Down");
-        if (Input.GetKeyDown(KeyCode.K)) RegisterInput("K"); // 공격 버튼 K 등록
-        
-        // 대각선 ↘️ 입력 감지 (오른쪽 + 아래 동시 입력 시 Down-Right 등록)
-        if (Input.GetKey(KeyCode.RightArrow) && Input.GetKey(KeyCode.DownArrow))
-        {
-            RegisterInput("Down-Right");
-        }
+        if (Input.GetKeyDown(KeyCode.D)) RegisterInput("Right");
+        if (Input.GetKeyDown(KeyCode.A)) RegisterInput("Left");
+        if (Input.GetKeyDown(KeyCode.W)) RegisterInput("Up");
+        if (Input.GetKeyDown(KeyCode.S)) RegisterInput("Down");
+        if (Input.GetKeyDown(KeyCode.K)) RegisterInput("K");
+
+        // 대각선 감지
+        if (Input.GetKey(KeyCode.D) && Input.GetKey(KeyCode.S)) RegisterInput("Down-Right");
+        if (Input.GetKey(KeyCode.A) && Input.GetKey(KeyCode.S)) RegisterInput("Down-Left");
     }
 
     void RegisterInput(string input)
     {
         if (Time.time - lastInputTime > inputTimeLimit)
         {
-            inputBuffer.Clear(); // 입력 시간이 초과되면 초기화
+            inputBuffer.Clear();
         }
-        
+
         inputBuffer.Add(input);
         lastInputTime = Time.time;
+        Debug.Log($"입력: {input} / 버퍼: {string.Join(", ", inputBuffer)}");
     }
 
     void CheckCommand()
     {
-        if (inputBuffer.Count >= hadoukenCommand.Count)
+        if (MatchFlexibleCommand(superCommand))
         {
-            // 입력 버퍼의 마지막 N개가 커맨드와 일치하는지 확인
-            int startIndex = inputBuffer.Count - hadoukenCommand.Count;
-            bool match = true;
-            for (int i = 0; i < hadoukenCommand.Count; i++)
-            {
-                if (inputBuffer[startIndex + i] != hadoukenCommand[i])
-                {
-                    match = false;
-                    break;
-                }
-            }
-
-            if (match)
-            {
-                ExecuteCommand();
-                inputBuffer.Clear(); // 커맨드 입력 후 버퍼 초기화
-            }
+            ExecuteSuperCommand();
+            inputBuffer.Clear();
         }
     }
 
-    void ExecuteCommand()
+    // 부드러운 커맨드 매칭 (단계별로 포함만 확인)
+    bool MatchFlexibleCommand(List<HashSet<string>> command)
     {
-        Debug.Log("➡️⬇️↘️K 커맨드 실행! (Hadouken!)");
-        // 여기에 실제 캐릭터 공격 동작을 넣으면 됨.
+        int bufferIndex = 0;
+
+        foreach (var step in command)
+        {
+            bool matched = false;
+
+            while (bufferIndex < inputBuffer.Count)
+            {
+                if (step.Contains(inputBuffer[bufferIndex]))
+                {
+                    matched = true;
+                    bufferIndex++;
+                    break;
+                }
+                bufferIndex++;
+            }
+
+            if (!matched) return false;
+        }
+
+        return true;
+    }
+
+    void ExecuteSuperCommand()
+    {
+        Debug.Log("⬅️⬇️➡️ 슈퍼 커맨드 실행! (Smooth Input)");
     }
 
     void MoveCharacter()
     {
         Vector2 moveDirection = Vector2.zero;
-
-        if (Input.GetKey(KeyCode.RightArrow)) moveDirection.x += 1;
-        if (Input.GetKey(KeyCode.LeftArrow)) moveDirection.x -= 1;
-        if (Input.GetKey(KeyCode.UpArrow)) moveDirection.y += 1;
-        if (Input.GetKey(KeyCode.DownArrow)) moveDirection.y -= 1;
+        if (Input.GetKey(KeyCode.D)) moveDirection.x += 1;
+        if (Input.GetKey(KeyCode.A)) moveDirection.x -= 1;
+        if (Input.GetKey(KeyCode.W)) moveDirection.y += 1;
+        if (Input.GetKey(KeyCode.S)) moveDirection.y -= 1;
 
         characterPosition += moveDirection * moveSpeed * Time.deltaTime;
-        Debug.Log($"캐릭터 위치: X = {characterPosition.x}, Y = {characterPosition.y}");
     }
 }
