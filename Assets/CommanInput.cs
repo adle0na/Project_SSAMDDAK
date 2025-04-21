@@ -1,129 +1,35 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class CommandInput : MonoBehaviour
+public abstract class CommandInput : MonoBehaviour
 {
-    private List<string> inputBuffer = new List<string>(); // 입력 버퍼
-    private float inputTimeLimit = 1.0f;
-    private float lastInputTime;
-    
+    protected List<string> inputBuffer = new List<string>();
+    protected float inputTimeLimit = 1.0f;
+    protected float lastInputTime;
+
     float leftHoldTime = 0f;
     float rightHoldTime = 0f;
     float holdThreshold = 0.5f;
-    
+
     bool leftHoldTriggered = false;
     bool rightHoldTriggered = false;
 
     private HashSet<string> frameInputs = new HashSet<string>();
-    
-    // 부드러운 커맨드 인식: 각 단계마다 여러 입력 허용
-    private readonly List<(string name, List<HashSet<string>> steps)> skillCommands = new List<(string, List<HashSet<string>>)>
-    {
-        ("→ → K", new List<HashSet<string>> {
-            new HashSet<string>{ "Right" },
-            new HashSet<string>{ "Right" },
-            new HashSet<string>{ "K" }
-        }),
-    
-        ("← ← K", new List<HashSet<string>> {
-            new HashSet<string>{ "Left" },
-            new HashSet<string>{ "Left" },
-            new HashSet<string>{ "K" }
-        }),
-        
-        ("↓ ↓ K", new List<HashSet<string>> {
-            new HashSet<string>{ "Down" },
-            new HashSet<string>{ "Down" },
-            new HashSet<string>{ "K" }
-        }),
-        
-        ("→ ↓ ↘ K", new List<HashSet<string>> {
-            new HashSet<string>{ "Right" },
-            new HashSet<string>{ "Down" },
-            new HashSet<string>{ "Down-Right", "Right", "Down" },
-            new HashSet<string>{ "K" }
-        }),
-        
-        ("← ↓ ↙ K", new List<HashSet<string>> {
-            new HashSet<string>{ "Left" },
-            new HashSet<string>{ "Down" },
-            new HashSet<string>{ "Down-Left", "Left", "Down" },
-            new HashSet<string>{ "K" }
-        }),
-        
-        ("↓ ↘ → K", new List<HashSet<string>> {
-            new HashSet<string>{ "Down" },
-            new HashSet<string>{ "Down-Right", "Right", "Down" },
-            new HashSet<string>{ "Right" },
-            new HashSet<string>{ "K" }
-        }),
-    
-        ("↓ ↙ ← K", new List<HashSet<string>> {
-            new HashSet<string>{ "Down" },
-            new HashSet<string>{ "Down-Left", "Left", "Down" },
-            new HashSet<string>{ "Left" },
-            new HashSet<string>{ "K" }
-        }),
-        
-        ("← ↓ → K", new List<HashSet<string>> {
-            new HashSet<string>{ "Left", "Down-Left" },
-            new HashSet<string>{ "Down", "Down-Left", "Down-Right" },
-            new HashSet<string>{ "Right", "Down-Right" },
-            new HashSet<string>{ "K" }
-        }),
-        
-        ("→ ↓ ← K", new List<HashSet<string>> {
-            new HashSet<string>{ "Right", "Down-Right" },
-            new HashSet<string>{ "Down", "Down-Left", "Down-Right" },
-            new HashSet<string>{ "Left", "Down-Left" },
-            new HashSet<string>{ "K" }
-        }),
-        
-        ("←(Hold) → K", new List<HashSet<string>> {
-            new HashSet<string>{ "Left_Hold" },
-            new HashSet<string>{ "Right" },
-            new HashSet<string>{ "K" }
-        }),
-    
-        ("→(Hold) ← K", new List<HashSet<string>> {
-            new HashSet<string>{ "Right_Hold" },
-            new HashSet<string>{ "Left" },
-            new HashSet<string>{ "K" }
-        }),
-        
-        ("↓ ↘ → ↓ ↘ → K", new List<HashSet<string>> {
-            new HashSet<string>{ "Down" },
-            new HashSet<string>{ "Down-Right", "Right", "Down" },
-            new HashSet<string>{ "Right" },
-            new HashSet<string>{ "Down" },
-            new HashSet<string>{ "Down-Right", "Right", "Down" },
-            new HashSet<string>{ "Right" },
-            new HashSet<string>{ "K" }
-        }),
-    
-        ("↓ ↙ ← ↓ ↙ ← K", new List<HashSet<string>> {
-            new HashSet<string>{ "Down" },
-            new HashSet<string>{ "Down-Left", "Left", "Down" },
-            new HashSet<string>{ "Left" },
-            new HashSet<string>{ "Down" },
-            new HashSet<string>{ "Down-Left", "Left", "Down" },
-            new HashSet<string>{ "Left" },
-            new HashSet<string>{ "K" }
-        }),
-    };
 
+    protected abstract List<(string name, List<HashSet<string>> steps)> SkillCommands { get; }
 
-    void Update()
+    protected virtual void Update()
     {
         frameInputs.Clear();
         DetectInput();
         DetectHold();
         MatchCommand();
+        UpdateBuffs();
     }
 
     void DetectInput()
     {
-        // 키 다운 기반으로만 감지
+        if (Input.GetKeyDown(KeyCode.J)) HandleNormalAttack();
         if (Input.GetKeyDown(KeyCode.K)) RegisterInputOnce("K");
 
         bool d = Input.GetKey(KeyCode.D);
@@ -143,11 +49,9 @@ public class CommandInput : MonoBehaviour
 
     void DetectHold()
     {
-        // 왼쪽 홀드 감지
         if (Input.GetKey(KeyCode.A))
         {
             leftHoldTime += Time.deltaTime;
-
             if (!leftHoldTriggered && leftHoldTime >= holdThreshold)
             {
                 RegisterInputOnce("Left_Hold");
@@ -160,11 +64,9 @@ public class CommandInput : MonoBehaviour
             leftHoldTriggered = false;
         }
 
-        // 오른쪽 홀드 감지
         if (Input.GetKey(KeyCode.D))
         {
             rightHoldTime += Time.deltaTime;
-
             if (!rightHoldTriggered && rightHoldTime >= holdThreshold)
             {
                 RegisterInputOnce("Right_Hold");
@@ -177,7 +79,7 @@ public class CommandInput : MonoBehaviour
             rightHoldTriggered = false;
         }
     }
-    
+
     void RegisterInputOnce(string input)
     {
         if (frameInputs.Contains(input)) return;
@@ -199,11 +101,19 @@ public class CommandInput : MonoBehaviour
 
     void MatchCommand()
     {
-        foreach (var (name, steps) in skillCommands)
+        foreach (var (name, steps) in SkillCommands)
         {
             if (IsCommandMatch(steps))
             {
-                Debug.Log($"✅ 커맨드 발동됨: {name}");
+                if (passiveActive)
+                {
+                    Debug.Log($"✅ 강화 커맨드 발동됨: {name}");
+                    passiveActive = false;
+                }
+                else
+                {
+                    Debug.Log($"✅ 커맨드 발동됨: {name}");
+                }
                 inputBuffer.Clear();
                 break;
             }
@@ -222,5 +132,36 @@ public class CommandInput : MonoBehaviour
                 return false;
         }
         return true;
+    }
+
+    // ====== 평타 & 패시브 ======
+    int normalAttackCount = 0;
+    float passiveTimer = 0f;
+    float passiveDuration = 0.5f;
+    bool passiveActive = false;
+
+    void HandleNormalAttack()
+    {
+        normalAttackCount++;
+        if (normalAttackCount >= 3)
+        {
+            passiveActive = true;
+            passiveTimer = passiveDuration;
+            normalAttackCount = 0;
+            Debug.Log("🔷 평타 3타 완료! 다음 스킬 강화됨");
+        }
+    }
+
+    void UpdateBuffs()
+    {
+        if (passiveActive)
+        {
+            passiveTimer -= Time.deltaTime;
+            if (passiveTimer <= 0f)
+            {
+                passiveActive = false;
+                Debug.Log("❌ 강화 효과 종료");
+            }
+        }
     }
 }
