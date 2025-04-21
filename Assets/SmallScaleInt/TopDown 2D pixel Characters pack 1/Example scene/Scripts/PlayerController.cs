@@ -18,10 +18,12 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
         public float projectileSpeed = 10.0f; // Speed at which the projectile travels
         public float shootDelay = 0.5f; // Delay in seconds before the projectile is fired
         
+        private AnimationController animController;
         void Start()
         {
             rb = GetComponent<Rigidbody2D>();
-            spriteRenderer = GetComponent<SpriteRenderer>(); // Get the SpriteRenderer component
+            spriteRenderer = GetComponent<SpriteRenderer>();
+            animController = GetComponent<AnimationController>();
         }
         void Update()
         {
@@ -42,6 +44,8 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
         
         void FixedUpdate()
         {
+            if (animController != null && animController.isAttacking) return;
+
             if (movementDirection != Vector2.zero)
             {
                 rb.MovePosition(rb.position + movementDirection * speed * Time.fixedDeltaTime);
