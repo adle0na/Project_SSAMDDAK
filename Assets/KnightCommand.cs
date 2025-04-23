@@ -34,28 +34,24 @@ public class KnightCommandInput : CommandInput
         
         // ⬇️⬇️ K — 기사의 맹세 (버프)
         ("기사의 맹세", new List<HashSet<string>> {
-            new HashSet<string>{ "Down" },
-            new HashSet<string>{ "Down" },
+            new HashSet<string>{ "Up" },
+            new HashSet<string>{ "Up" },
             new HashSet<string>{ "K" }
         }),
         
         // ⬅️↙️⬇️↘️➡️ K — 맹세의 검풍
         ("맹세의 검풍", new List<HashSet<string>> {
-            new HashSet<string>{ "Left", "Down-Left" },
-            new HashSet<string>{ "Down", "Down-Left", "Down-Right" },
-            new HashSet<string>{ "Down", "Down-Left", "Down-Right" },
-            new HashSet<string>{ "Down-Right", "Right" },
-            new HashSet<string>{ "Right" },
-            new HashSet<string>{ "K" }
+            new HashSet<string> { "Left", "Down-Left" },
+            new HashSet<string> { "Down", "Down-Left", "Down-Right" },
+            new HashSet<string> { "Right", "Down-Right" },
+            new HashSet<string> { "K" }
         }),
         
         ("맹세의 검풍", new List<HashSet<string>> {
-            new HashSet<string>{ "Right", "Down-Right" },
-            new HashSet<string>{ "Down", "Down-Left", "Down-Right" },
-            new HashSet<string>{ "Down", "Down-Left", "Down-Right" },
-            new HashSet<string>{ "Down-Left", "Left" },
-            new HashSet<string>{ "Left" },
-            new HashSet<string>{ "K" }
+            new HashSet<string> { "Right", "Down-Right" },
+            new HashSet<string> { "Down", "Down-Right", "Down-Left" },
+            new HashSet<string> { "Left", "Down-Left" },
+            new HashSet<string> { "K" }
         }),
 
         // // ⬅️↙️⬇️↘️➡️ K홀드 — 진 맹세의 검풍
@@ -76,4 +72,13 @@ public class KnightCommandInput : CommandInput
         //     new HashSet<string>{ "K_Hold" }
         // }),
     };
+
+    private readonly List<HashSet<string>> superCommand = new List<HashSet<string>>
+    {
+        new HashSet<string> { "Left", "Down-Left" },
+        new HashSet<string> { "Down", "Down-Left", "Down-Right" },
+        new HashSet<string> { "Right", "Down-Right" },
+        new HashSet<string> { "K" }
+    };
+    
 }

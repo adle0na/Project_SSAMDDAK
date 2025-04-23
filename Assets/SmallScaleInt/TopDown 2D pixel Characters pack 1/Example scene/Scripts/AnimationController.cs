@@ -67,7 +67,6 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             {
                 TriggerSlideAnimation();
             }
-
         }
 
         void UpdateDirection(string newDirection)
@@ -233,7 +232,6 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
         {
             isAttacking = true;
             
-            // Randomly choose between AttackAttack and Attack2 for the attack type
             int attackType = Random.Range(0, 2);  // Generates 0 or 1
             string attackParam = (attackType == 0 ? "AttackAttack" : "Attack2") + direction;
 
@@ -268,7 +266,6 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             animator.SetBool(currentDirection, true); // Restore the last known direction
         }
         
-        //Take Damage:
         public void TriggerTakeDamageAnimation()
         {
             if (!gameObject.activeInHierarchy)
