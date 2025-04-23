@@ -7000,7 +7000,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1714495769}
-  - component: {fileID: 1714495768}
   m_Layer: 0
   m_Name: GameObject
   m_TagString: Untagged
@@ -7008,18 +7007,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1714495768
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1714495767}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 02322ccdf0c55ee44988d559256431f1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!4 &1714495769
 Transform:
   m_ObjectHideFlags: 0
@@ -8711,6 +8698,7 @@ GameObject:
   - component: {fileID: 5231557377653584626}
   - component: {fileID: 6398365656847445298}
   - component: {fileID: 6398365656847445300}
+  - component: {fileID: 6398365656847445301}
   m_Layer: 8
   m_Name: Knight
   m_TagString: Untagged
@@ -8949,6 +8937,18 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: -0.22}
   m_Radius: 0.14
+--- !u!114 &6398365656847445301
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3910211311719623391}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08d42e3d4d7bb48408cfca544c8c1809, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &7422853373323987226
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9076,6 +9076,7 @@ GameObject:
   - component: {fileID: 5256549028733274228}
   - component: {fileID: 7903394415332824253}
   - component: {fileID: 7903394415332824252}
+  - component: {fileID: 7903394415332824255}
   m_Layer: 8
   m_Name: Archer
   m_TagString: Untagged
@@ -9164,6 +9165,18 @@ MonoBehaviour:
   AoEPrefab: {fileID: 0}
   projectileSpeed: 10
   shootDelay: 0.5
+--- !u!114 &7903394415332824255
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7903394415332824251}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 698d9a8d529454f4dbde9695c75592ec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!212 &8760383774344589631
 SpriteRenderer:
   m_ObjectHideFlags: 0
