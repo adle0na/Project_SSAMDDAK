@@ -72,13 +72,4 @@ public class KnightCommandInput : CommandInput
         //     new HashSet<string>{ "K_Hold" }
         // }),
     };
-
-    private readonly List<HashSet<string>> superCommand = new List<HashSet<string>>
-    {
-        new HashSet<string> { "Left", "Down-Left" },
-        new HashSet<string> { "Down", "Down-Left", "Down-Right" },
-        new HashSet<string> { "Right", "Down-Right" },
-        new HashSet<string> { "K" }
-    };
-    
 }

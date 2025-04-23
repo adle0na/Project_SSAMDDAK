@@ -94,6 +94,9 @@ public abstract class CommandInput : MonoBehaviour
             inputBuffer.Clear();
         }
 
+        if (input == "Left_Hold" && inputBuffer.Contains("Right_Hold")) return;
+        if (input == "Right_Hold" && inputBuffer.Contains("Left_Hold")) return;
+        
         inputBuffer.Add(input);
         lastInputTime = Time.time;
         Debug.Log($"입력: {input} / 버퍼: {string.Join(", ", inputBuffer)}");
