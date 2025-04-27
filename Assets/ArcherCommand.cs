@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using SmallScaleInc.TopDownPixelCharactersPack1;
 using UnityEngine;
 
 public class ArcherCommandInput : CommandInput

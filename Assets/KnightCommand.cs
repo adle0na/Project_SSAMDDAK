@@ -3,6 +3,11 @@ using UnityEngine;
 
 public class KnightCommandInput : CommandInput
 {
+    [Header("콤보 설정")]
+    public int   maxCombo          = 3;
+    public float comboInputWindow  = 0.25f;
+    public float lungeDistance     = 0.25f;
+    
     protected override List<(string, List<HashSet<string>>)> SkillCommands => new List<(string, List<HashSet<string>>)>
     {
         // ➡️⬇️↘️ K — 초승달 베기

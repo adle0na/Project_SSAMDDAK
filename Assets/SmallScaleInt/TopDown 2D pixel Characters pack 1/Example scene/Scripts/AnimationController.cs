@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 
@@ -8,10 +9,16 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
     public class AnimationController : MonoBehaviour
     {
         private Animator animator;
-        public string currentDirection = "isEast"; // Default direction
-        public bool isCurrentlyRunning; //for debugging purposes
-        public bool isAttacking = false;
-
+        
+        [LabelText("현재 방향")]
+        public string currentDirection = "isEast";
+        
+        [LabelText("이동 가능 여부")]
+        public bool isMovable = true;
+        
+        [LabelText("이동중")]
+        public bool isRunning;
+        
         void Start()
         {
             animator = GetComponent<Animator>();
@@ -21,110 +28,45 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             animator.SetBool("isCrouchRunning", false);
             animator.SetBool("isCrouchIdling", false);
         }
-
-        void Update()
+        
+        public void HandleMovement(float angle, Vector2 moveDir)
         {
-            if (!gameObject.activeInHierarchy)
-            {
-                return;
-            }
-            //HandleMovement();
-            HandleAttackAttack();
+            if (!isMovable) return;
 
-            if (Input.GetKey(KeyCode.Alpha1))
-            {
-                TriggerSpecialAbility1Animation();
-            }
-            else if (Input.GetKey(KeyCode.Alpha2))
-            {
-                TriggerSpecialAbility2Animation();
-            }
-            else if (Input.GetKey(KeyCode.Alpha3))
-            {
-                TriggerCastSpellAnimation();
-            }
-            else if (Input.GetKey(KeyCode.Alpha4))
-            {
-                TriggerKickAnimation();
-            }
-            else if (Input.GetKey(KeyCode.Alpha5))
-            {
-                TriggerPummelAnimation();
-            }
-            else if (Input.GetKey(KeyCode.Alpha6))
-            {
-                TriggerAttackSpinAnimation();
-            }
-            else if (Input.GetKey(KeyCode.LeftShift) && isCurrentlyRunning)
-            {
-                TriggerFlipAnimation();
-            }
-            else if (Input.GetKey(KeyCode.LeftControl) && isCurrentlyRunning)
-            {
-                TriggerRollAnimation();
-            }
-            else if (Input.GetKey(KeyCode.LeftAlt) && isCurrentlyRunning)
-            {
-                TriggerSlideAnimation();
-            }
-        }
-
-        void UpdateDirection(string newDirection)
-        {
-            // Reset all directional booleans to false
-            SetDirectionBools(false, false, false, false, false, false, false, false);
-
-            // Set the new direction to true
-            animator.SetBool(newDirection, true);
-
-            // Update the current direction
-            currentDirection = newDirection;
-
-            //Reset the parameters to restart animations from new directions. 
-            ResetAttackAttackParameters();
-        }
-        public bool isRunning;
-        public void HandleMovement(float angle)
-        {
-            if (isAttacking) return;
+            bool isMoving = moveDir.sqrMagnitude > 0.0f;
             
-            if (angle < 0 || 
-                (!Input.GetKey(KeyCode.W) && !Input.GetKey(KeyCode.S) && 
-                 !Input.GetKey(KeyCode.A) && !Input.GetKey(KeyCode.D)))
+            if (!isMoving)
             {
-                isRunning = false;
-                isCurrentlyRunning = false;
-
-                animator.SetBool("isRunning", false);
-                animator.SetBool("isCrouchRunning", false);
+                animator.SetFloat("Speed", 0);
                 ResetAllMovementBools();
-
                 animator.SetBool(currentDirection, true);
                 return;
             }
             
             if (angle < 0) angle += 360;
-            
-            string newDirection = DetermineDirectionFromAngle(angle);
-            UpdateDirection(newDirection);
-            string movementDirection = newDirection.Substring(2); // Remove "is" from the direction name
+            string dir = DetermineDirectionFromAngle(angle);
+            if (dir != currentDirection) UpdateDirection(dir);
 
-            // Capture movement input states
-            isRunning = Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D);
+            /* 3) 속도 & 달리기 판단 ------------------------------------- */
+            float moveSpeed01 = Mathf.InverseLerp(0, 4f, moveDir.magnitude);   
+            // speed(4f 예시) 기준 정규화
+            animator.SetFloat("Speed", moveSpeed01); // 0~1 : idle~run
 
-            // Set general movement boolean
-            isCurrentlyRunning = true;
-
-            // Reset all directional movement parameters
-            ResetAllMovementBools();
-
-            // Update animator with movement conditions
-            animator.SetBool("isRunning", isRunning);
-            animator.SetBool("isCrouchRunning", isRunning);
-
-            SetMovementAnimation(true, "Move", movementDirection);
+            // 필요하면 Shift 키 등으로 “달리기” 토글만 별도 BOOL
+            animator.SetBool("isRunning", moveSpeed01 > 0.6f);
         }
 
+        void UpdateDirection(string newDirection)
+        {
+            SetDirectionBools(false, false, false, false, false, false, false, false);
+            
+            animator.SetBool(newDirection, true);
+
+            currentDirection = newDirection;
+
+            ResetAttackAttackParameters();
+        }
+        
         void SetMovementAnimation(bool isActive, string baseKey, string direction)
         {
             if (isActive)
@@ -154,8 +96,7 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             animator.SetBool("CrouchRunSouthEast", false);
             animator.SetBool("CrouchRunSouthWest", false);
         }
-
-
+        
         string DetermineDirectionFromAngle(float angle)
         {
             // Adjust the ranges based on your snapped angles
@@ -178,8 +119,7 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
 
             return "isEast"; // Default direction
         }
-
-
+        
         void SetDirectionBools(bool isWest, bool isEast, bool isSouth, bool isSouthWest, bool isNorthEast, bool isSouthEast, bool isNorth, bool isNorthWest)
         {
             animator.SetBool("isWest", isWest);
@@ -192,52 +132,21 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             animator.SetBool("isNorthWest", isNorthWest);
         }
 
-
-        //Default Attacks:
-
-        void HandleAttackAttack()
+        string GetCurrentDirection()
         {
-            // Check if the left mouse button is currently being held down
-            if (Input.GetKeyDown(KeyCode.J))
-            {
-                bool isRunning = isCurrentlyRunning;
-                // Determine the current direction and trigger the appropriate attack attack or attack run attack
-                if (animator.GetBool("isNorth"))
-                    TriggerAttack(isRunning, "North");
-                else if (animator.GetBool("isSouth"))
-                    TriggerAttack(isRunning, "South");
-                else if (animator.GetBool("isEast"))
-                    TriggerAttack(isRunning, "East");
-                else if (animator.GetBool("isWest"))
-                    TriggerAttack(isRunning, "West");
-                else if (animator.GetBool("isNorthEast"))
-                    TriggerAttack(isRunning, "NorthEast");
-                else if (animator.GetBool("isNorthWest"))
-                    TriggerAttack(isRunning, "NorthWest");
-                else if (animator.GetBool("isSouthEast"))
-                    TriggerAttack(isRunning, "SouthEast");
-                else if (animator.GetBool("isSouthWest"))
-                    TriggerAttack(isRunning, "SouthWest");
-            }
-            else if (Input.GetKeyUp(KeyCode.J))
-            {
-                // Reset attack attack parameters and return to idle state
-                ResetAttackAttackParameters();
-                // No need to explicitly set the idle state here since it should naturally follow from resetting the attack parameters
-                // and the movement handling logic already sets the appropriate idle direction based on the last known direction.
-            }
+            if (animator.GetBool("isNorth"))      return "North";
+            if (animator.GetBool("isSouth"))      return "South";
+            if (animator.GetBool("isEast"))       return "East";
+            if (animator.GetBool("isWest"))       return "West";
+            if (animator.GetBool("isNorthEast"))  return "NorthEast";
+            if (animator.GetBool("isNorthWest"))  return "NorthWest";
+            if (animator.GetBool("isSouthEast"))  return "SouthEast";
+            return "SouthWest";
         }
 
-        void TriggerAttack(bool isRunning, string direction)
+        public void AttackInput()
         {
-            isAttacking = true;
-            
-            int attackType = Random.Range(0, 2);  // Generates 0 or 1
-            string attackParam = (attackType == 0 ? "AttackAttack" : "Attack2") + direction;
-
-            animator.SetBool(attackParam, true);
-            animator.SetBool("isAttackAttacking", !isRunning);
-            animator.SetBool("isAttackRunning", isRunning);
+            TriggerAttack();
         }
         
         void ResetAttackAttackParameters()
@@ -250,121 +159,106 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
                 animator.SetBool("Attack2" + dir, false);
                 animator.SetBool("AttackRun" + dir, false);
             }
-
-            // After resetting attack attack, restore the direction
+            
             RestoreDirectionAfterAttack();
-            isAttacking = false;
         }
         
         void RestoreDirectionAfterAttack()
         {
-            // Reset the character to face the last known direction after an attack
             animator.SetBool("isAttackAttacking", false);
             animator.SetBool("isAttackRunning", false);
             animator.SetBool("isRunning", false);
             SetDirectionBools(false, false, false, false, false, false, false, false); // Reset all directions
-            animator.SetBool(currentDirection, true); // Restore the last known direction
+            animator.SetBool(currentDirection, true);
+        }
+
+        #region Animations
+
+        public void TriggerAttack()
+        {
+            Debug.Log("입력감지");
+            if (!gameObject.activeInHierarchy)
+            {
+                Debug.Log("리턴체크1");
+                return;
+            }
+            animator.SetBool("isAttackAttacking", true);
+            if (currentDirection.Equals("isNorth")) TriggerAttackAnimation("AttackAttackNorth");
+            else if (currentDirection.Equals("isSouth")) TriggerAttackAnimation("AttackAttackSouth");
+            else if (currentDirection.Equals("isEast")) TriggerAttackAnimation("AttackAttackEast");
+            else if (currentDirection.Equals("isWest")) TriggerAttackAnimation("AttackAttackWest");
+            else if (currentDirection.Equals("isNorthEast")) TriggerAttackAnimation("AttackAttackNorthEast");
+            else if (currentDirection.Equals("isNorthWest")) TriggerAttackAnimation("AttackAttackNorthWest");
+            else if (currentDirection.Equals("isSouthEast")) TriggerAttackAnimation("AttackAttackSouthEast");
+            else if (currentDirection.Equals("isSouthWest")) TriggerAttackAnimation("AttackAttackSouthWest");
+            
+            Debug.Log("리턴체크2");
         }
         
-        public void TriggerTakeDamageAnimation()
+        private void TriggerAttackAnimation(string attackDirectionParam)
+        {
+            animator.SetBool(attackDirectionParam, true);
+
+            StartCoroutine(ResetNormalAttackParameters());
+        }
+        
+        public void TriggerNormalAttackAnimation()
         {
             if (!gameObject.activeInHierarchy)
             {
                 return;
             }
-            // Set 'isTakeDamage' to true to initiate the take damage animation
-            animator.SetBool("isTakeDamage", true);
-            // Determine the current direction and trigger the appropriate take damage animation
-            if (animator.GetBool("isNorth")) animator.SetBool("TakeDamageNorth", true);
-            else if (animator.GetBool("isSouth")) animator.SetBool("TakeDamageSouth", true);
-            else if (animator.GetBool("isEast")) animator.SetBool("TakeDamageEast", true);
-            else if (animator.GetBool("isWest")) animator.SetBool("TakeDamageWest", true);
-            else if (animator.GetBool("isNorthEast")) animator.SetBool("TakeDamageNorthEast", true);
-            else if (animator.GetBool("isNorthWest")) animator.SetBool("TakeDamageNorthWest", true);
-            else if (animator.GetBool("isSouthEast")) animator.SetBool("TakeDamageSouthEast", true);
-            else if (animator.GetBool("isSouthWest")) animator.SetBool("TakeDamageSouthWest", true);
-
-            // Optionally, reset the take damage parameters after a delay or at the end of the animation
-            StartCoroutine(ResetTakeDamageParameters());
+            animator.SetBool("isAttackAttacking", true);
+            if (currentDirection.Equals("isNorth")) TriggerAttackAnimation("AttackAttackNorth");
+            else if (currentDirection.Equals("isSouth")) TriggerAttackAnimation("AttackAttackSouth");
+            else if (currentDirection.Equals("isEast")) TriggerAttackAnimation("AttackAttackEast");
+            else if (currentDirection.Equals("isWest")) TriggerAttackAnimation("AttackAttackWest");
+            else if (currentDirection.Equals("isNorthEast")) TriggerAttackAnimation("AttackAttackNorthEast");
+            else if (currentDirection.Equals("isNorthWest")) TriggerAttackAnimation("AttackAttackNorthWest");
+            else if (currentDirection.Equals("isSouthEast")) TriggerAttackAnimation("AttackAttackSouthEast");
+            else if (currentDirection.Equals("isSouthWest")) TriggerAttackAnimation("AttackAttackSouthWest");
+            
+            StartCoroutine(ResetNormalAttackParameters());
         }
 
-        IEnumerator ResetTakeDamageParameters()
+        IEnumerator ResetNormalAttackParameters()
         {
-            // Wait for the length of the animation before resetting
-            yield return new WaitForSeconds(1); // Adjust the wait time based on your animation length
+            yield return new WaitForSeconds(0.5f);
 
-            // Reset all take damage parameters to false
-            animator.SetBool("isTakeDamage", false);
-            animator.SetBool("TakeDamageNorth", false);
-            animator.SetBool("TakeDamageSouth", false);
-            animator.SetBool("TakeDamageEast", false);
-            animator.SetBool("TakeDamageWest", false);
-            animator.SetBool("TakeDamageNorthEast", false);
-            animator.SetBool("TakeDamageNorthWest", false);
-            animator.SetBool("TakeDamageSouthEast", false);
-            animator.SetBool("TakeDamageSouthWest", false);
-
-            // Restore the direction to ensure the character returns to the correct idle state
-            RestoreDirectionAfterAttack();
-        }
-
-        //Crouch:
-        public void TriggerCrouchIdleAnimation()
-        {
-            if (!gameObject.activeInHierarchy)
-            {
-                return;
-            }
-            // Set 'isCrouchIdling' to true to initiate the crouch idle animation
-            animator.SetBool("isCrouchIdling", true);
-
-            // Determine the current direction and trigger the appropriate crouch idle animation
-            if (animator.GetBool("isNorth")) animator.SetBool("CrouchIdleNorth", true);
-            else if (animator.GetBool("isSouth")) animator.SetBool("CrouchIdleSouth", true);
-            else if (animator.GetBool("isEast")) animator.SetBool("CrouchIdleEast", true);
-            else if (animator.GetBool("isWest")) animator.SetBool("CrouchIdleWest", true);
-            else if (animator.GetBool("isNorthEast")) animator.SetBool("CrouchIdleNorthEast", true);
-            else if (animator.GetBool("isNorthWest")) animator.SetBool("CrouchIdleNorthWest", true);
-            else if (animator.GetBool("isSouthEast")) animator.SetBool("CrouchIdleSouthEast", true);
-            else if (animator.GetBool("isSouthWest")) animator.SetBool("CrouchIdleSouthWest", true);
-
-        }
-
-        public void ResetCrouchIdleParameters()
-        {
-            // Reset all crouch idle parameters to false
-            animator.SetBool("isCrouchIdling", false);
-            animator.SetBool("CrouchIdleNorth", false);
-            animator.SetBool("CrouchIdleSouth", false);
-            animator.SetBool("CrouchIdleEast", false);
-            animator.SetBool("CrouchIdleWest", false);
-            animator.SetBool("CrouchIdleNorthEast", false);
-            animator.SetBool("CrouchIdleNorthWest", false);
-            animator.SetBool("CrouchIdleSouthEast", false);
-            animator.SetBool("CrouchIdleSouthWest", false);
-
-            // Optionally, restore the direction to ensure the character returns to the correct idle state
+            animator.SetBool("isSpecialAbility1", false);
+            animator.SetBool("SpecialAbility1North", false);
+            animator.SetBool("SpecialAbility1South", false);
+            animator.SetBool("SpecialAbility1East", false);
+            animator.SetBool("SpecialAbility1West", false);
+            animator.SetBool("SpecialAbility1NorthEast", false);
+            animator.SetBool("SpecialAbility1NorthWest", false);
+            animator.SetBool("SpecialAbility1SouthEast", false);
+            animator.SetBool("SpecialAbility1SouthWest", false);
+            
             RestoreDirectionAfterAttack();
         }
         
-        //Die
         public void TriggerDie()
         {
+            Debug.Log("입력감지");
             if (!gameObject.activeInHierarchy)
             {
+                Debug.Log("리턴체크1");
                 return;
             }
             // Ensure that we're indicating a death state is happening
             animator.SetBool("isDie", true);
             // Check the current direction and trigger the appropriate die animation
-            if (currentDirection.Equals("isNorth")) TriggerDeathAnimation("DieNorth");
-            else if (currentDirection.Equals("isSouth")) TriggerDeathAnimation("DieSouth");
-            else if (currentDirection.Equals("isEast")) TriggerDeathAnimation("DieEast");
-            else if (currentDirection.Equals("isWest")) TriggerDeathAnimation("DieWest");
-            else if (currentDirection.Equals("isNorthEast")) TriggerDeathAnimation("DieNorthEast");
-            else if (currentDirection.Equals("isNorthWest")) TriggerDeathAnimation("DieNorthWest");
-            else if (currentDirection.Equals("isSouthEast")) TriggerDeathAnimation("DieSouthEast");
-            else if (currentDirection.Equals("isSouthWest")) TriggerDeathAnimation("DieSouthWest");
+            if (currentDirection.Equals("isNorth")) TriggerDeathAnimation("dieNorth");
+            else if (currentDirection.Equals("isSouth")) TriggerDeathAnimation("dieSouth");
+            else if (currentDirection.Equals("isEast")) TriggerDeathAnimation("dieEast");
+            else if (currentDirection.Equals("isWest")) TriggerDeathAnimation("dieWest");
+            else if (currentDirection.Equals("isNorthEast")) TriggerDeathAnimation("dieNorthEast");
+            else if (currentDirection.Equals("isNorthWest")) TriggerDeathAnimation("dieNorthWest");
+            else if (currentDirection.Equals("isSouthEast")) TriggerDeathAnimation("dieSouthEast");
+            else if (currentDirection.Equals("isSouthWest")) TriggerDeathAnimation("dieSouthWest");
+            
+            Debug.Log("리턴체크2");
         }
 
         private void TriggerDeathAnimation(string deathDirectionParam)
@@ -380,19 +274,18 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             yield return new WaitForSeconds(2);
 
             animator.SetBool("isDie", false);
-            animator.SetBool("DieNorth", false);
-            animator.SetBool("DieSouth", false);
-            animator.SetBool("DieEast", false);
-            animator.SetBool("DieWest", false);
-            animator.SetBool("DieNorthEast", false);
-            animator.SetBool("DieNorthWest", false);
-            animator.SetBool("DieSouthEast", false);
-            animator.SetBool("DieSouthWest", false);
+            animator.SetBool("dieNorth", false);
+            animator.SetBool("dieSouth", false);
+            animator.SetBool("dieEast", false);
+            animator.SetBool("dieWest", false);
+            animator.SetBool("dieNorthEast", false);
+            animator.SetBool("dieNorthWest", false);
+            animator.SetBool("dieSouthEast", false);
+            animator.SetBool("dieSouthWest", false);
             // Restore the direction to ensure the character returns to the correct idle state
             RestoreDirectionAfterAttack();
         }
-
-        // Special Ability 1:
+        
         public void TriggerSpecialAbility1Animation()
         {
             if (!gameObject.activeInHierarchy)
@@ -435,8 +328,7 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             // Optionally, restore the direction to ensure the character returns to the correct idle state
             RestoreDirectionAfterAttack();
         }
-
-        // Special Ability 2:
+        
         public void TriggerSpecialAbility2Animation()
         {
             if (!gameObject.activeInHierarchy)
@@ -479,9 +371,7 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             // Optionally, restore the direction to ensure the character returns to the correct idle state
             RestoreDirectionAfterAttack();
         }
-
-
-        //Cast spell
+        
         public void TriggerCastSpellAnimation()
         {
             if (!gameObject.activeInHierarchy)
@@ -524,8 +414,7 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             // Optionally, restore the direction to ensure the character returns to the correct idle state
             RestoreDirectionAfterAttack(); 
         }
-
-        //Kick:
+        
         public void TriggerKickAnimation()
         {
             if (!gameObject.activeInHierarchy)
@@ -568,8 +457,7 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             // Optionally, restore the direction to ensure the character returns to the correct idle state
             RestoreDirectionAfterAttack(); 
         }
-
-        //Flip animation:
+        
         public void TriggerFlipAnimation()
         {
             if (!gameObject.activeInHierarchy)
@@ -612,10 +500,7 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             // Optionally, restore the direction to ensure the character returns to the correct idle state
             RestoreDirectionAfterAttack();  
         }
-
-
-        //rolling
-
+        
         public void TriggerRollAnimation()
         {
             if (!gameObject.activeInHierarchy)
@@ -658,8 +543,7 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             // Optionally, restore the direction to ensure the character returns to the correct idle state
             RestoreDirectionAfterAttack();  
         }
-
-        //Slide
+        
         public void TriggerSlideAnimation()
         {
             if (!gameObject.activeInHierarchy)
@@ -702,8 +586,7 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             // Optionally, restore the direction to ensure the character returns to the correct idle state
             RestoreDirectionAfterAttack(); 
         }
-
-        //Pummel
+        
         public void TriggerPummelAnimation()
         {
             if (!gameObject.activeInHierarchy)
@@ -746,8 +629,7 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             // Optionally, restore the direction to ensure the character returns to the correct idle state
             RestoreDirectionAfterAttack();  
         }
-
-        //Attack spin
+        
         public void TriggerAttackSpinAnimation()
         {
             if (!gameObject.activeInHierarchy)
@@ -790,7 +672,8 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             // Optionally, restore the direction to ensure the character returns to the correct idle state
             RestoreDirectionAfterAttack(); 
         }
+        
 
-
+        #endregion
     }
 }
