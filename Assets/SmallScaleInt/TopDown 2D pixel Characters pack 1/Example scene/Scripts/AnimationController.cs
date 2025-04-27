@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Sirenix.OdinInspector;
@@ -18,7 +19,7 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
         
         [LabelText("이동중")]
         public bool isRunning;
-        
+
         void Start()
         {
             animator = GetComponent<Animator>();
@@ -29,31 +30,39 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             animator.SetBool("isCrouchIdling", false);
         }
         
-        public void HandleMovement(float angle, Vector2 moveDir)
+        public void HandleMovement(float angle)
         {
             if (!isMovable) return;
-
-            bool isMoving = moveDir.sqrMagnitude > 0.0f;
             
-            if (!isMoving)
+            if (angle < 0 || 
+                (!Input.GetKey(KeyCode.W) && !Input.GetKey(KeyCode.S) && 
+                 !Input.GetKey(KeyCode.A) && !Input.GetKey(KeyCode.D)))
             {
-                animator.SetFloat("Speed", 0);
+                isRunning = false;
+
+                animator.SetBool("isRunning", false);
+                animator.SetBool("isCrouchRunning", false);
                 ResetAllMovementBools();
+
                 animator.SetBool(currentDirection, true);
                 return;
             }
             
             if (angle < 0) angle += 360;
-            string dir = DetermineDirectionFromAngle(angle);
-            if (dir != currentDirection) UpdateDirection(dir);
+            
+            string newDirection = DetermineDirectionFromAngle(angle);
+            UpdateDirection(newDirection);
+            string movementDirection = newDirection.Substring(2); // Remove "is" from the direction name
 
-            /* 3) 속도 & 달리기 판단 ------------------------------------- */
-            float moveSpeed01 = Mathf.InverseLerp(0, 4f, moveDir.magnitude);   
-            // speed(4f 예시) 기준 정규화
-            animator.SetFloat("Speed", moveSpeed01); // 0~1 : idle~run
+            // Capture movement input states
+            isRunning = Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D);
+            
+            // Reset all directional movement parameters
+            ResetAllMovementBools();
+            
+            animator.SetBool("isRunning", isRunning);
 
-            // 필요하면 Shift 키 등으로 “달리기” 토글만 별도 BOOL
-            animator.SetBool("isRunning", moveSpeed01 > 0.6f);
+            SetMovementAnimation(true, "Move", movementDirection);
         }
 
         void UpdateDirection(string newDirection)
@@ -170,72 +179,70 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             animator.SetBool("isRunning", false);
             SetDirectionBools(false, false, false, false, false, false, false, false); // Reset all directions
             animator.SetBool(currentDirection, true);
+
+            isMovable = true;
         }
 
         #region Animations
 
         public void TriggerAttack()
         {
-            Debug.Log("입력감지");
-            if (!gameObject.activeInHierarchy)
-            {
-                Debug.Log("리턴체크1");
-                return;
-            }
+            if (!gameObject.activeInHierarchy) return;
+
             animator.SetBool("isAttackAttacking", true);
-            if (currentDirection.Equals("isNorth")) TriggerAttackAnimation("AttackAttackNorth");
-            else if (currentDirection.Equals("isSouth")) TriggerAttackAnimation("AttackAttackSouth");
-            else if (currentDirection.Equals("isEast")) TriggerAttackAnimation("AttackAttackEast");
-            else if (currentDirection.Equals("isWest")) TriggerAttackAnimation("AttackAttackWest");
-            else if (currentDirection.Equals("isNorthEast")) TriggerAttackAnimation("AttackAttackNorthEast");
-            else if (currentDirection.Equals("isNorthWest")) TriggerAttackAnimation("AttackAttackNorthWest");
-            else if (currentDirection.Equals("isSouthEast")) TriggerAttackAnimation("AttackAttackSouthEast");
-            else if (currentDirection.Equals("isSouthWest")) TriggerAttackAnimation("AttackAttackSouthWest");
-            
-            Debug.Log("리턴체크2");
+
+            // 방향별 파라미터 선택
+            string param = currentDirection switch
+            {
+                "isNorth"      => "AttackAttackNorth",
+                "isSouth"      => "AttackAttackSouth",
+                "isEast"       => "AttackAttackEast",
+                "isWest"       => "AttackAttackWest",
+                "isNorthEast"  => "AttackAttackNorthEast",
+                "isNorthWest"  => "AttackAttackNorthWest",
+                "isSouthEast"  => "AttackAttackSouthEast",
+                "isSouthWest"  => "AttackAttackSouthWest",
+                _              => string.Empty
+            };
+
+            if (param != string.Empty)
+            {
+                animator.SetBool(param, true);
+                StartCoroutine(WaitForAttackEnd(param));
+            }
         }
         
-        private void TriggerAttackAnimation(string attackDirectionParam)
+        private IEnumerator WaitForAttackEnd(string attackParam)
         {
-            animator.SetBool(attackDirectionParam, true);
-
-            StartCoroutine(ResetNormalAttackParameters());
-        }
-        
-        public void TriggerNormalAttackAnimation()
-        {
-            if (!gameObject.activeInHierarchy)
+            /* ── 1) 실제로 해당 스테이트에 들어올 때까지 기다린다 ── */
+            yield return null; // 다음 프레임
+            yield return new WaitUntil(() =>
             {
-                return;
-            }
-            animator.SetBool("isAttackAttacking", true);
-            if (currentDirection.Equals("isNorth")) TriggerAttackAnimation("AttackAttackNorth");
-            else if (currentDirection.Equals("isSouth")) TriggerAttackAnimation("AttackAttackSouth");
-            else if (currentDirection.Equals("isEast")) TriggerAttackAnimation("AttackAttackEast");
-            else if (currentDirection.Equals("isWest")) TriggerAttackAnimation("AttackAttackWest");
-            else if (currentDirection.Equals("isNorthEast")) TriggerAttackAnimation("AttackAttackNorthEast");
-            else if (currentDirection.Equals("isNorthWest")) TriggerAttackAnimation("AttackAttackNorthWest");
-            else if (currentDirection.Equals("isSouthEast")) TriggerAttackAnimation("AttackAttackSouthEast");
-            else if (currentDirection.Equals("isSouthWest")) TriggerAttackAnimation("AttackAttackSouthWest");
-            
-            StartCoroutine(ResetNormalAttackParameters());
-        }
+                var info = animator.GetCurrentAnimatorStateInfo(0);
+                return info.IsName(attackParam);         // 지정 스테이트에 진입?
+            });
 
-        IEnumerator ResetNormalAttackParameters()
-        {
-            yield return new WaitForSeconds(0.5f);
+            isMovable = false;                          // 이동 잠금
 
-            animator.SetBool("isSpecialAbility1", false);
-            animator.SetBool("SpecialAbility1North", false);
-            animator.SetBool("SpecialAbility1South", false);
-            animator.SetBool("SpecialAbility1East", false);
-            animator.SetBool("SpecialAbility1West", false);
-            animator.SetBool("SpecialAbility1NorthEast", false);
-            animator.SetBool("SpecialAbility1NorthWest", false);
-            animator.SetBool("SpecialAbility1SouthEast", false);
-            animator.SetBool("SpecialAbility1SouthWest", false);
-            
+            /* ── 2) 스테이트가 끝날 때까지 기다린다 ── */
+            yield return new WaitUntil(() =>
+            {
+                var info = animator.GetCurrentAnimatorStateInfo(0);
+                bool finished = !animator.IsInTransition(0) &&
+                                info.IsName(attackParam) &&
+                                info.normalizedTime >= 0.99f;   // 99 % 이상 재생
+                return finished;
+            });
+
+            /* ── 3) 플래그·상태 리셋 ── */
+            animator.SetBool("isAttackAttacking", false);
+            animator.SetBool(attackParam,           false);
+
+            // 필요하다면 여기에 특수 스킬 플래그들 초기화
+            // ResetSpecialAbilityFlags();
+
             RestoreDirectionAfterAttack();
+            isMovable = true;
         }
         
         public void TriggerDie()
