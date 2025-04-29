@@ -20,10 +20,16 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
         [LabelText("이동중")]
         public bool isRunning;
 
+        [Header("Move Settings")]
+        [SerializeField] private float moveSpeed     = 4f;   // 최고 속도
+        [SerializeField] private float acceleration = 12f;   // 가속·감속 계수
+        private Vector3 velocity;       
+        
         void Start()
         {
             animator = GetComponent<Animator>();
-            animator.SetBool("isEast", true); //Sets the default direction to east.
+            
+            animator.SetBool("isEast", true); // 기본 방향
             animator.SetBool("isWalking", false);
             animator.SetBool("isRunning", false);
             animator.SetBool("isCrouchRunning", false);
@@ -153,9 +159,47 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             return "SouthWest";
         }
 
-        public void AttackInput()
+        public void AttackInput(int comboStep = 0)
         {
-            TriggerAttack();
+            if (!gameObject.activeInHierarchy) return;
+
+            animator.SetBool("isAttackAttacking", true);
+
+            string dirCore = currentDirection switch     // "isEast" → "East"
+            {
+                "isNorth"     => "North",
+                "isSouth"     => "South",
+                "isEast"      => "East",
+                "isWest"      => "West",
+                "isNorthEast" => "NorthEast",
+                "isNorthWest" => "NorthWest",
+                "isSouthEast" => "SouthEast",
+                "isSouthWest" => "SouthWest"
+            };
+            
+            string animParam = comboStep switch
+            {
+                0 => $"AttackAttack{dirCore}",
+                1 => $"Attack2{dirCore}",
+                2 => $"AttackRun{dirCore}",
+            };
+
+            animator.SetBool(animParam, true);
+            StartCoroutine(ComboResetRoutine(animParam)); 
+        }
+        
+        IEnumerator ComboResetRoutine(string paramName)
+        {
+            isMovable = false;
+
+            yield return new WaitUntil(() =>
+            {
+                var info = animator.GetCurrentAnimatorStateInfo(0);
+                return info.IsName(paramName) && info.normalizedTime >= 0.98f;
+            });
+
+            animator.SetBool(paramName, false);
+            RestoreDirectionAfterAttack();          // 기존 함수
         }
         
         void ResetAttackAttackParameters()
@@ -190,61 +234,38 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
             if (!gameObject.activeInHierarchy) return;
 
             animator.SetBool("isAttackAttacking", true);
-
-            // 방향별 파라미터 선택
+            
             string param = currentDirection switch
             {
-                "isNorth"      => "AttackAttackNorth",
-                "isSouth"      => "AttackAttackSouth",
-                "isEast"       => "AttackAttackEast",
-                "isWest"       => "AttackAttackWest",
-                "isNorthEast"  => "AttackAttackNorthEast",
-                "isNorthWest"  => "AttackAttackNorthWest",
-                "isSouthEast"  => "AttackAttackSouthEast",
-                "isSouthWest"  => "AttackAttackSouthWest",
-                _              => string.Empty
+                "isNorth"     => "AttackAttackNorth",
+                "isSouth"     => "AttackAttackSouth",
+                "isEast"      => "AttackAttackEast",
+                "isWest"      => "AttackAttackWest",
+                "isNorthEast" => "AttackAttackNorthEast",
+                "isNorthWest" => "AttackAttackNorthWest",
+                "isSouthEast" => "AttackAttackSouthEast",
+                "isSouthWest" => "AttackAttackSouthWest",
             };
-
-            if (param != string.Empty)
-            {
-                animator.SetBool(param, true);
-                StartCoroutine(WaitForAttackEnd(param));
-            }
+            
+            animator.SetBool(param, true);
+            StartCoroutine(WaitUntilAttackEnds(param));
         }
         
-        private IEnumerator WaitForAttackEnd(string attackParam)
+        private IEnumerator WaitUntilAttackEnds(string stateName)
         {
-            /* ── 1) 실제로 해당 스테이트에 들어올 때까지 기다린다 ── */
-            yield return null; // 다음 프레임
-            yield return new WaitUntil(() =>
+            isMovable = false;
+
+            // 0번 레이어 기준. 다른 레이어면 바꿔주세요.
+            while (true)
             {
-                var info = animator.GetCurrentAnimatorStateInfo(0);
-                return info.IsName(attackParam);         // 지정 스테이트에 진입?
-            });
-
-            isMovable = false;                          // 이동 잠금
-
-            /* ── 2) 스테이트가 끝날 때까지 기다린다 ── */
-            yield return new WaitUntil(() =>
-            {
-                var info = animator.GetCurrentAnimatorStateInfo(0);
-                bool finished = !animator.IsInTransition(0) &&
-                                info.IsName(attackParam) &&
-                                info.normalizedTime >= 0.99f;   // 99 % 이상 재생
-                return finished;
-            });
-
-            /* ── 3) 플래그·상태 리셋 ── */
-            animator.SetBool("isAttackAttacking", false);
-            animator.SetBool(attackParam,           false);
-
-            // 필요하다면 여기에 특수 스킬 플래그들 초기화
-            // ResetSpecialAbilityFlags();
+                AnimatorStateInfo info = animator.GetCurrentAnimatorStateInfo(0);
+                if (info.IsName(stateName) && info.normalizedTime >= 0.99f) break;
+                yield return null;   // 다음 프레임까지 대기
+            }
 
             RestoreDirectionAfterAttack();
-            isMovable = true;
         }
-        
+
         public void TriggerDie()
         {
             Debug.Log("입력감지");
@@ -682,5 +703,17 @@ namespace SmallScaleInc.TopDownPixelCharactersPack1
         
 
         #endregion
+        
+        private readonly Dictionary<string, Vector3> dirTable = new()
+        {
+            {"isNorth",     Vector3.forward},
+            {"isSouth",     Vector3.back},
+            {"isEast",      Vector3.right},
+            {"isWest",      Vector3.left},
+            {"isNorthEast", (Vector3.forward + Vector3.right).normalized},
+            {"isNorthWest", (Vector3.forward + Vector3.left ).normalized},
+            {"isSouthEast", (Vector3.back    + Vector3.right).normalized},
+            {"isSouthWest", (Vector3.back    + Vector3.left ).normalized},
+        };
     }
 }
