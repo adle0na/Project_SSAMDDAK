@@ -7,6 +7,8 @@ public class KnightCommandInput : CommandInput
     public int   maxCombo          = 3;
     public float comboInputWindow  = 0.25f;
     public float lungeDistance     = 0.25f;
+
+    public List<SOSkill> skillList;
     
     protected override List<(string, List<HashSet<string>>)> SkillCommands => new List<(string, List<HashSet<string>>)>
     {
